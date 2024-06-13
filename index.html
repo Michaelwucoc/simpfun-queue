@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Queue Status</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #444;
+    }
+    .container {
+      width: 80%;
+      margin: 0 auto;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .queue-status {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+    }
+    .queue-box {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      width: 22%;
+    }
+    .chart-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .chart-container #queueChart {
+      width: 100%;
+      height: 400px;
+    }
+    .update-time {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 1.2em;
+    }
+    .chart-buttons {
+      text-align: center;
+      margin-top: 10px;
+    }
+    .chart-buttons select {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .binding {
+      text-align: center;
+      margin-top: 10px;
+    }
+    .footer {
+      text-align: center;
+      font-size: 1.2em;
+      font-family: 'Roboto', sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    .flash {
+      animation: flash 1s alternate infinite;
+    }
+    @keyframes flash {
+      from { background-color: #fff; }
+      to { background-color: #f00; }
+    }
+  </style>
+</head>
+<body>
+  <h1>队列状态 [v1.8]</h1>
+  <div class="container">
+    <div class="queue-status">
+      <div class="queue-box" id="normalQueueStatus"></div>
+      <div class="queue-box" id="proQueueStatus"></div>
+      <div class="queue-box" id="normalFirstWaiting"></div>
+      <div class="queue-box" id="proFirstWaiting"></div>
+    </div>
+    <div class="update-time" id="updateTime">11:45:14 更新</div>
+    <div class="chart-container">
+      <div id="queueChart"></div>
+    </div>
+    <div class="chart-buttons">
+      <select id="timeRange" onchange="updateQueueStatus()">
+        <option value="3">最近3分钟</option>
+        <option value="10">最近10分钟</option>
+        <option value="15">最近15分钟</option>
+        <option value="30" selected>最近30分钟</option>
+        <option value="60">最近1小时</option>
+        <option value="120">最近2小时</option>
+      </select>
+    </div>
+    <div class="binding">
+      <label for="userQueueNum">绑定队列编号:</label>
+      <input type="number" id="userQueueNum" />
+      <button onclick="bindQueueNum()">绑定</button>
+    </div>
+  </div>
+  
+  <audio id="alertSound" src="alert.mp3"></audio>
+
+  <script>
+    let userQueueNum = null;
+
+    function bindQueueNum() {
+      userQueueNum = document.getElementById('userQueueNum').value;
+      alert('队列编号绑定成功: ' + userQueueNum);
+    }
+
+    async function fetchQueueStatus() {
+      const response = await fetch('queue_status.php?action=queue_status', {
+        method: 'GET'
+      });
+      const data = await response.json();
+      return data;
+    }
+
+    function updateQueueStatus() {
+      fetchQueueStatus().then(data => {
+        const timeRange = document.getElementById('timeRange').value;
+        const now = new Date();
+
+        // Group data by minute and get max value for each group
+        const groupedData = data.reduce((acc, item) => {
+          const timestamp = new Date(item.timestamp);
+          const seconds = Math.floor(timestamp.getTime() / 1000); // group by seconds
+
+          if (!acc[seconds]) {
+            acc[seconds] = [];
+          }
+          acc[seconds].push(item);
+          return acc;
+        }, {});
+
+        const filteredData = Object.values(groupedData).map(group => {
+          return group.reduce((max, item) => {
+            if (!max) return item;
+            return item.waiting > max.waiting ? item : max;
+          }, null);
+        }).filter(item => (now - new Date(item.timestamp)) / 60000 <= timeRange);
+
+        const normalData = filteredData.filter(item => item.queue_type === 'normal');
+        const proData = filteredData.filter(item => item.queue_type === 'pro');
+
+        const normalRunning = normalData.length > 0 ? normalData[0].running : 0;
+        const normalWaiting = normalData.length > 0 ? normalData[0].waiting : 0;
+        const normalFirstWaiting = normalData.length > 0 ? normalData[0].num_first_waiting : 0;
+
+        const proRunning = proData.length > 0 ? proData[0].running : 0;
+        const proWaiting = proData.length > 0 ? proData[0].waiting : 0;
+        const proFirstWaiting = proData.length > 0 ? proData[0].num_first_waiting : 0;
+
+        document.getElementById('normalQueueStatus').innerText = `普通队列 [等待 | 运行]\n${normalWaiting} | ${normalRunning}`;
+        document.getElementById('proQueueStatus').innerText = `Pro 队列 [等待 | 运行]\n${proWaiting} | ${proRunning}`;
+        document.getElementById('normalFirstWaiting').innerText = `普通队列第一个编号\n# ${normalFirstWaiting}`;
+        document.getElementById('proFirstWaiting').innerText = `Pro 队列第一个编号\n# ${proFirstWaiting}`;
+
+        const labels = filteredData.map(item => new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        const normalRunningData = normalData.map(item => item.running === "队列空" ? 0 : item.running);
+        const normalWaitingData = normalData.map(item => item.waiting === "队列空" ? 0 : item.waiting);
+        const proRunningData = proData.map(item => item.running === "队列空" ? 0 : item.running);
+        const proWaitingData = proData.map(item => item.waiting === "队列空" ? 0 : item.waiting);
+
+        const plotData = [
+          {
+            x: labels,
+            y: normalRunningData,
+            type: 'bar',
+            name: 'Normal Running',
+            marker: { color: 'rgba(75, 192, 192, 0.7)' }
+          },
+          {
+            x: labels,
+            y: normalWaitingData,
+            type: 'bar',
+            name: 'Normal Waiting',
+            marker: { color: 'rgba(255, 99, 132, 0.7)' }
+          },
+          {
+            x: labels,
+            y: proRunningData,
+            type: 'bar',
+            name: 'Pro Running',
+            marker: { color: 'rgba(54, 162, 235, 0.7)' }
+          },
+          {
+            x: labels,
+            y: proWaitingData,
+            type: 'bar',
+            name: 'Pro Waiting',
+            marker: { color: 'rgba(255, 206, 86, 0.7)' }
+          }
+        ];
+
+        const layout = {
+          title: 'Queue Status',
+          xaxis: { title: 'Time', type: 'category' },
+          yaxis: { title: 'Queue Length' },
+          margin: { t: 40 },
+          barmode: 'group',
+          hovermode: 'closest' // Show closest data on hover
+        };
+
+        Plotly.newPlot('queueChart', plotData, layout);
+
+        // 更新时间显示
+        const updateTime = new Date();
+        const updateTimeFormatted = `${updateTime.getHours().toString().padStart(2, '0')}:${updateTime.getMinutes().toString().padStart(2, '0')}:${updateTime.getSeconds().toString().padStart(2, '0')}`;
+        document.getElementById('updateTime').innerText = `${updateTimeFormatted} 更新完毕`;
+
+        // 检测用户队列编号
+        if (userQueueNum) {
+          if (userQueueNum < proFirstWaiting || userQueueNum < normalFirstWaiting) {
+            const alertSound = document.getElementById('alertSound');
+            alertSound.play();
+
+            // 开始闪烁
+            document.body.classList.add('flash');
+            setTimeout(() => {
+              document.body.classList.remove('flash');
+            }, 60000);
+          }
+        }
+
+        // 每20秒更新一次数据
+        setTimeout(updateQueueStatus, 20000);
+      });
+    }
+
+    // 检测是否为手机版并显示提示
+    function detectMobile() {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        alert('本网站是为电脑版设计的，手机版体验会极差。');
+      }
+    }
+
+    detectMobile(); // 检查是否为手机版
+    updateQueueStatus(); // 初次调用更新数据
+
+  </script>
+</body>
+<footer><div class="footer">Powered By Michaelwucoc DO NOT DISTRIBUTE! ｜ API Powered By 送了一个小时</div></footer>
+</html>
