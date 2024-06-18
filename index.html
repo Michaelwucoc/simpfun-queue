@@ -95,15 +95,12 @@
             font-family: 'Roboto', sans-serif;
             background-color: rgba(255, 255, 255, 0.8);
             color: #333;
-            margin: 10px;
             padding: 20px;
             opacity: 0.9;
-            margin-top: 10px;
+            margin: 10px;
             border-radius: 10px;
         }
-        .flash {
-            animation: flash 1s alternate infinite;
-        }
+
         @keyframes flash {
             from { background-color: #fff; }
             to { background-color: #f00; }
@@ -112,15 +109,7 @@
             0% { transform: translateY(-100%); }
             100% { transform: translateY(100vh); }
         }
-        .heart {
-            position: fixed;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 3rem;
-            color: red;
-            animation: drop 2s infinite;
-        }
+
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -192,7 +181,7 @@
         <div id="queueChart"></div>
     </div>
     <div class="chart-buttons">
-        <select id="timeRange" onchange="updateChart()">
+        <label for="timeRange"></label><select id="timeRange" onchange="updateChart()">
             <option value="3">最近3分钟</option>
             <option value="10">最近10分钟</option>
             <option value="15">最近15分钟</option>
@@ -214,36 +203,12 @@
     let userQueueNum = null;
     let previousNormalWaiting = null;
     let previousProWaiting = null;
-
-    function bindQueueNum() {
-        userQueueNum = document.getElementById('userQueueNum').value;
-
-        if (userQueueNum == 114514) {
-            window.location.href = "https://114514.cn";
-        } else if (userQueueNum == 5201314) {
-            showHearts();
-        } else {
-            alert('队列编号绑定成功: ' + userQueueNum);
-        }
-    }
-
-    function showHearts() {
-        const heart = document.createElement('div');
-        heart.classList.add('heart');
-        heart.innerHTML = '❤️';
-        document.body.appendChild(heart);
-        setTimeout(() => {
-            heart.remove();
-        }, 2000);
-    }
-
     async function fetchLatestQueueStatus() {
         try {
             const response = await fetch('queue_status.php?action=queue_status', {
                 method: 'GET'
             });
-            const data = await response.json();
-            return data;
+            return await response.json();
         } catch (error) {
             console.error("Failed to fetch latest queue status:", error);
             throw error;
@@ -383,7 +348,8 @@
         }
     }
 
-    function calculateUserWaitTime() {
+    function calculateUserWaitTime()
+    {
         const userPositionNum = parseInt(document.getElementById('userPositionNum').value, 10);
         if (isNaN(userPositionNum)) {
             alert('请输入有效的队列编号');
@@ -407,10 +373,11 @@
 
         const waitTime = calculateEstimatedWaitTime([{ waiting: position, timestamp: new Date().toISOString() }]);
         const waitTimeFormatted = formatWaitTime(waitTime);
-        const waitTimeColor = getWaitTimeColor(waitTime.hours);
+        getWaitTimeColor(waitTime.hours);
 
         alert(`您在${userQueueType}中的位置是：${position}\n预计等待时间：${waitTimeFormatted}\n[仅供参考|不包含一个任务卡顿超过1小时的情况]\nPro目前不开放任务预测(因为太快了不需要预测）`);
     }
+
 
 
     async function updateChart() {
