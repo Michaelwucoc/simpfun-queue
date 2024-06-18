@@ -1,6 +1,29 @@
 let userQueueNum = null;
 let previousNormalWaiting = null;
 let previousProWaiting = null;
+
+function bindQueueNum() {
+    userQueueNum = document.getElementById('userQueueNum').value;
+
+    if (userQueueNum == 114514) {
+        window.location.href = "https://114514.cn";
+    } else if (userQueueNum == 5201314) {
+        showHearts();
+    } else {
+        alert('队列编号绑定成功: ' + userQueueNum);
+    }
+}
+
+function showHearts() {
+    const heart = document.createElement('div');
+    heart.classList.add('heart');
+    heart.innerHTML = '❤️';
+    document.body.appendChild(heart);
+    setTimeout(() => {
+        heart.remove();
+    }, 2000);
+}
+
 async function fetchLatestQueueStatus() {
     try {
         const response = await fetch('queue_status.php?action=queue_status', {
@@ -36,6 +59,8 @@ function calculateEstimatedWaitTime(waiting) {
     } else {
         totalSeconds = 100 * 10 + 200 * 15 + 200 * 20 + 300 * 25 + 200 * 30 + (waiting - 1000) * 35;
     }
+    //冷知识，本算法被 H 抄入了他的机器人
+    // 好好好，改都没改
 
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -102,8 +127,8 @@ async function updateInnerText() {
         document.getElementById('updateTime').innerText = `${updateTimeFormatted} 更新完毕`;
 
         // 更新预计等待时间
-        const normalWaitTime = calculateEstimatedWaitTime(data.filter(item => item.queue_type === 'normal'));
-        const proWaitTime = calculateEstimatedWaitTime(data.filter(item => item.queue_type === 'pro'));
+        const normalWaitTime = calculateEstimatedWaitTime(normalParsed.waiting);
+        const proWaitTime = calculateEstimatedWaitTime(proParsed.waiting);
         const normalWaitTimeFormatted = formatWaitTime(normalWaitTime);
         const proWaitTimeFormatted = formatWaitTime(proWaitTime);
 
@@ -136,9 +161,7 @@ async function updateInnerText() {
         console.error("Failed to update Inner Text:", error);
     }
 }
-
-function calculateUserWaitTime()
-{
+function calculateUserWaitTime() {
     const userPositionNum = parseInt(document.getElementById('userPositionNum').value, 10);
     if (isNaN(userPositionNum)) {
         alert('请输入有效的队列编号');
@@ -160,13 +183,12 @@ function calculateUserWaitTime()
         return;
     }
 
-    const waitTime = calculateEstimatedWaitTime([{ waiting: position, timestamp: new Date().toISOString() }]);
+    const waitTime = calculateEstimatedWaitTime(position);
     const waitTimeFormatted = formatWaitTime(waitTime);
-    getWaitTimeColor(waitTime.hours);
+    const waitTimeColor = getWaitTimeColor(waitTime.hours);
 
-    alert(`您在${userQueueType}中的位置是：${position}\n预计等待时间：${waitTimeFormatted}\n[仅供参考|不包含一个任务卡顿超过1小时的情况]\nPro目前不开放任务预测(因为太快了不需要预测）`);
+    alert(`您在普通队列中的位置是：${position}\n预计等待时间：${waitTimeFormatted}\n[仅供参考|不包含一个任务卡顿超过1小时的情况]\nPro目前不开放任务预测(因为太快了不需要预测）`);
 }
-
 
 
 async function updateChart() {
