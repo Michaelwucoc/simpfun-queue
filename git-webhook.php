@@ -1,6 +1,7 @@
 <?php
 //git webhook 自动部署脚本
-//抄的，不是Milk原创。
+//抄的，不是Milk原创
+//https://www.weipxiu.com/4103.html
 $requestBody = file_get_contents("php://input"); //该方法可以接收post传过来的json字符串
 if (empty($requestBody)) { //判断数据是不是空
     die('send fail');
