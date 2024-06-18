@@ -215,6 +215,7 @@
     let previousNormalWaiting = null;
     let previousProWaiting = null;
 
+
     function bindQueueNum() {
         userQueueNum = document.getElementById('userQueueNum').value;
 
@@ -258,26 +259,33 @@
     }
 
     function calculateEstimatedWaitTime(waiting) {
-        let totalSeconds = 0;
+        let lastWaiting = null;
+        let lastTimestamp = null;
+        let totalWaitingTime = 0;
+        let totalWaitingCount = 0;
 
-        if (waiting <= 100) {
-            totalSeconds = waiting * 10;
-        } else if (waiting <= 300) {
-            totalSeconds = 100 * 10 + (waiting - 100) * 15;
-        } else if (waiting <= 500) {
-            totalSeconds = 100 * 10 + 200 * 15 + (waiting - 300) * 20;
-        } else if (waiting <= 800) {
-            totalSeconds = 100 * 10 + 200 * 15 + 200 * 20 + (waiting - 500) * 25;
-        } else if (waiting <= 1000) {
-            totalSeconds = 100 * 10 + 200 * 15 + 200 * 20 + 300 * 25 + (waiting - 800) * 30;
-        } else {
-            totalSeconds = 100 * 10 + 200 * 15 + 200 * 20 + 300 * 25 + 200 * 30 + (waiting - 1000) * 35;
+        for (let item of waiting) {
+            let waiting = parseInt(item.waiting);
+            let timestamp = Date.parse(item.timestamp) / 1000;
+
+            if (lastWaiting !== null && lastTimestamp !== null) {
+                let waitingDifference = waiting - lastWaiting;
+                if (waitingDifference > 0) {
+                    let timeDifference = timestamp - lastTimestamp;
+                    totalWaitingTime += timeDifference;
+                    totalWaitingCount += waitingDifference;
+                }
+            }
+
+            lastWaiting = waiting;
+            lastTimestamp = timestamp;
         }
-        //冷知识，本算法被 H 抄入了他的机器人
-        // 好好好，改都没改
 
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        let averageWaitingTime = totalWaitingTime / totalWaitingCount;
+        let remainingWaitingTime = averageWaitingTime * lastWaiting;
+
+        const hours = Math.floor(remainingWaitingTime / 3600);
+        const minutes = Math.floor((remainingWaitingTime % 3600) / 60);
         return { hours, minutes };
     }
 
