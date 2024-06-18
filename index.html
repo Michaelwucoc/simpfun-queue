@@ -36,6 +36,11 @@
             color: #333;
             opacity: 0.9;
         }
+        h6 {
+            text-align: center;
+            color: #333;
+            opacity: 0.9;
+        }
         .container {
             width: 80%;
             margin: 0 auto;
@@ -146,6 +151,7 @@
     <h1><a href="https://qm.qq.com/q/vJRQ3QIvdu" target="_blank">队列状态 v4.71 [点我加入交流群]</a></h1>
     <h4>今日普通用户充值上限已抢光 用时 *1.233 秒 [较昨日 -2.436 秒]</h4>
     <h4>广告贴 - b站搜盒子里的猫FH [赞助3元]</h4>
+    <h6><a href="https://github.com/Michaelwucoc/simpfun-queue/issues" target="_blank">提示：下面的算法刚刚升级，如果有问题，请前往GitHub提Issue</a></h6>
     <div class="centered-flex">
         <img src="https://stat.shbsme.top/api/badge/31/status?style=for-the-badge" alt="Uptime Badge">
         <img src="https://stat.shbsme.top/api/badge/31/uptime?style=for-the-badge" alt="Uptime Badge">
@@ -222,34 +228,25 @@
         return { running, waiting, num_first_waiting };
     }
 
-    function calculateEstimatedWaitTime(waitingData) {
-        let lastWaiting = null;
-        let lastTimestamp = null;
-        let totalWaitingTime = 0;
-        let totalWaitingCount = 0;
+    function calculateEstimatedWaitTime(waiting) {
+        let totalSeconds = 0;
 
-        for (let item of waitingData) {
-            let waiting = parseInt(item.waiting);
-            let timestamp = Date.parse(item.timestamp) / 1000;
-
-            if (lastWaiting !== null && lastTimestamp !== null) {
-                let waitingDifference = waiting - lastWaiting;
-                if (waitingDifference > 0) {
-                    let timeDifference = timestamp - lastTimestamp;
-                    totalWaitingTime += timeDifference;
-                    totalWaitingCount += waitingDifference;
-                }
-            }
-
-            lastWaiting = waiting;
-            lastTimestamp = timestamp;
+        if (waiting <= 100) {
+            totalSeconds = waiting * 10;
+        } else if (waiting <= 300) {
+            totalSeconds = 100 * 10 + (waiting - 100) * 15;
+        } else if (waiting <= 500) {
+            totalSeconds = 100 * 10 + 200 * 15 + (waiting - 300) * 20;
+        } else if (waiting <= 800) {
+            totalSeconds = 100 * 10 + 200 * 15 + 200 * 20 + (waiting - 500) * 25;
+        } else if (waiting <= 1000) {
+            totalSeconds = 100 * 10 + 200 * 15 + 200 * 20 + 300 * 25 + (waiting - 800) * 30;
+        } else {
+            totalSeconds = 100 * 10 + 200 * 15 + 200 * 20 + 300 * 25 + 200 * 30 + (waiting - 1000) * 35;
         }
 
-        let averageWaitingTime = totalWaitingTime / totalWaitingCount;
-        let remainingWaitingTime = averageWaitingTime * lastWaiting;
-
-        const hours = Math.floor(remainingWaitingTime / 3600);
-        const minutes = Math.floor((remainingWaitingTime % 3600) / 60);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
         return { hours, minutes };
     }
 
