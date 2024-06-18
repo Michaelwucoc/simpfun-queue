@@ -215,7 +215,6 @@
     let previousNormalWaiting = null;
     let previousProWaiting = null;
 
-
     function bindQueueNum() {
         userQueueNum = document.getElementById('userQueueNum').value;
 
@@ -258,13 +257,13 @@
         return { running, waiting, num_first_waiting };
     }
 
-    function calculateEstimatedWaitTime(waiting) {
+    function calculateEstimatedWaitTime(waitingData) {
         let lastWaiting = null;
         let lastTimestamp = null;
         let totalWaitingTime = 0;
         let totalWaitingCount = 0;
 
-        for (let item of waiting) {
+        for (let item of waitingData) {
             let waiting = parseInt(item.waiting);
             let timestamp = Date.parse(item.timestamp) / 1000;
 
@@ -349,8 +348,8 @@
             document.getElementById('updateTime').innerText = `${updateTimeFormatted} 更新完毕`;
 
             // 更新预计等待时间
-            const normalWaitTime = calculateEstimatedWaitTime(normalParsed.waiting);
-            const proWaitTime = calculateEstimatedWaitTime(proParsed.waiting);
+            const normalWaitTime = calculateEstimatedWaitTime(data.filter(item => item.queue_type === 'normal'));
+            const proWaitTime = calculateEstimatedWaitTime(data.filter(item => item.queue_type === 'pro'));
             const normalWaitTimeFormatted = formatWaitTime(normalWaitTime);
             const proWaitTimeFormatted = formatWaitTime(proWaitTime);
 
@@ -383,6 +382,7 @@
             console.error("Failed to update Inner Text:", error);
         }
     }
+
     function calculateUserWaitTime() {
         const userPositionNum = parseInt(document.getElementById('userPositionNum').value, 10);
         if (isNaN(userPositionNum)) {
@@ -405,11 +405,11 @@
             return;
         }
 
-        const waitTime = calculateEstimatedWaitTime(position);
+        const waitTime = calculateEstimatedWaitTime([{ waiting: position, timestamp: new Date().toISOString() }]);
         const waitTimeFormatted = formatWaitTime(waitTime);
         const waitTimeColor = getWaitTimeColor(waitTime.hours);
 
-        alert(`您在普通队列中的位置是：${position}\n预计等待时间：${waitTimeFormatted}\n[仅供参考|不包含一个任务卡顿超过1小时的情况]\nPro目前不开放任务预测(因为太快了不需要预测）`);
+        alert(`您在${userQueueType}中的位置是：${position}\n预计等待时间：${waitTimeFormatted}\n[仅供参考|不包含一个任务卡顿超过1小时的情况]\nPro目前不开放任务预测(因为太快了不需要预测）`);
     }
 
 
@@ -520,6 +520,10 @@
 
 <audio id="alertSound" src="alert.mp3" preload="auto"></audio>
 </body>
-<footer><div class="footer">Powered By Michaelwucoc ©️ DO NOT DISTRIBUTE! ｜ API Powered By 送了一个小时</div></footer>
+<footer>
+    <div class="footer">Powered By Michaelwucoc ©️ DO NOT DISTRIBUTE! ｜ API Powered By 送了一个小时</div>
+    <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/t/Michaelwucoc/simpfun-queue?style=for-the-badge">
+
+</footer>
 
 </html>
