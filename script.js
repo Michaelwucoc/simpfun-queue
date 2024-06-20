@@ -14,6 +14,7 @@ function bindQueueNum() {
     }
 }
 
+
 function showHearts() {
     const heart = document.createElement('div');
     heart.classList.add('heart');

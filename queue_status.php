@@ -73,7 +73,7 @@ function fetchAndStoreQueueStatus($conn) {
   }
 }
 
-// 定期清理超过2小时的数据
+// 定期清理超过12小时的数据
 function cleanOldData($conn) {
   $sql = "DELETE FROM queue_status WHERE timestamp < NOW() - INTERVAL 12 HOUR";
   if ($conn->query($sql) === FALSE) {
