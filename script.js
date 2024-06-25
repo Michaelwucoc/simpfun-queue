@@ -48,7 +48,7 @@ function calculateEstimatedWaitTime(waiting) {
     let totalSeconds = 0;
 
     if (waiting <= 100) {
-        totalSeconds = waiting * 10;
+        totalSeconds = waiting * 5;
     } else if (waiting <= 300) {
         totalSeconds = 100 * 10 + (waiting - 100) * 15;
     } else if (waiting <= 500) {
